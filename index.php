@@ -2,6 +2,8 @@
 require_once __DIR__ .'/vendor/autoload.php';
 require __DIR__ . '/functions.php';
 
+define('TABLE_NAME_SHEETS', 'sheets');
+
 $httpClient = new \LINE\LINEBot\HTTPClient\CurlHTTPClient(getenv('CHANNEL_ACCESS_TOKEN'));
 
 $bot = new \LINE\LINEBot($httpClient, ['channelSecret' => getenv('CHANNEL_SECRET')]);
@@ -36,4 +38,27 @@ foreach ($events as $event) {
 }
 
 
+
+  //DB接続用クラス
+  class dbConnection {
+    protected static $db;
+    
+    private function __construct() {
+      try {
+          $url = parse_url(getenv('DATABASE_URL'));
+          $dsn = sprintf('pgsql:host=%s;dbname=%s', $url['host'], substr($url['path'], 1));
+          self::$db = new PDO($dsn, $url['user'], $url['pass']);
+          self::$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+      } catch (PDOException $e) {
+          echo 'Connection Error: ' . $e->getMessage();
+      }
+    }
+    
+    public static function getConnection() {
+      if (!self::$db) {
+        new dbConnection();
+      }
+      return self::$db;
+    }
+  }
 ?>
