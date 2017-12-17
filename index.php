@@ -48,11 +48,12 @@ foreach ($events as $event) {
                 new LINE\LINEBot\MessageBuilder\TextMessageBuilder('です。'));
       // すでに入室している時        
       } else {
-        replyTextMessage($bot, $event->getReplyToken(), 'すでに入室済みです。');
+        replyTextMessage($bot, $event->getReplyToken(), '既に入室済みです。');
       }
-    //入室
-    } else if(substr($event->getText(), 4) == 'enter') {
-       //ユーザーが未入室のとき
+    }
+    // 入室
+    else if(substr($event->getText(), 4) == 'enter') {
+      // ユーザーが未入室の時
       if(getRoomIdOfUser($event->getUserId()) === PDO::PARAM_NULL) {
         replyTextMessage($bot, $event->getReplyToken(), 'ルームIDを入力してください。');
       } else {
