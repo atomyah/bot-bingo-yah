@@ -50,18 +50,31 @@ foreach ($events as $event) {
       } else {
         replyTextMessage($bot, $event->getReplyToken(), '既に入室済みです。');
       }
-    }
-    // 入室
-    else if(substr($event->getText(), 4) == 'enter') {
+      // 入室
+    } else if(substr($event->getText(), 4) == 'enter') {
       // ユーザーが未入室の時
       if(getRoomIdOfUser($event->getUserId()) === PDO::PARAM_NULL) {
         replyTextMessage($bot, $event->getReplyToken(), 'ルームIDを入力してください。');
       } else {
         replyTextMessage($bot, $event->getReplyToken(), '入室済みです。');
       }
+      // 退室確認ダイアログ
+    } else if(substr($event->getText(), 4) == 'leave_confirm') {
+      replyConfirmTemplate($bot, $event->getReplyToken(), '本当に退出しますか？', '本当に退出しますか？',
+              new LINE\LINEBot\TemplateActionBuilder\MessageTemplateActionBuilder('はい', 'cmd_leave'),
+              new LINE\LINEBot\TemplateActionBuilder\PostbackTemplateActionBuilder('いいえ', 'cancel'));
+      // 退室
+    } else if(substr($event->getText(), 4) == 'leave') {
+      if(getRoomIdOfUser($event->getUserId()) !== PDO::PARAM_NULL) {
+        leaveRoom($event->getUserId());
+        replyTextMessage($bot, $event->getReplyToken(), '退出しました');
+      } else {
+        replyTextMessage($bot, $event->getReplyToken(), 'ルームに入っていません');
+      }
     }
     continue;
   }
+  
   // リッチコンテンツ以外の時（ルームIDが入力されたとき)
   if(getRoomIdOfUser($event->getUserId()) === PDO::PARAM_NULL) {
     //入室
@@ -117,6 +130,14 @@ function enterRoomAndGetRoomId($userId, $roomId) {
   }
 }
 
+
+//退出
+function leaveRoom($userId) {
+  $dbh = dbConnection::getConnection();
+  $sql = 'delete from ' . TABLE_NAME_SHEETS . ' where ? = pgp_sym_decrypt(userid, \'' . getenv('DB_ENCRYPT_PASS') . '\')';
+  $sth = $dbh->prepare($sql);
+  $sth->execute(array($userId));
+}
 
 
 
