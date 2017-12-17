@@ -108,6 +108,8 @@ function enterRoomAndGetRoomId($userId, $roomId) {
   $dbh = dbConnection::getConnection();
   $sql = 'insert into ' . TABLE_NAME_SHEETS . ' (userid, sheet, roomid) SELECT pgp_sym_encrypt(?, \'' . getenv('DB_ENCRYPT_PASS') .'\'), ?, ?
     where exists(select roomid from ' . TABLE_NAME_SHEETS . ' where roomid = ?) returning roomid';
+  $sth = $dbh->prepare($sql);
+  $sth->execute(array($userId, PDO::PARAM_NULL, $roomId, $roomId));
   if (!($row = $sth->fetch())) {
     return PDO::PARAM_NULL;
   } else {
