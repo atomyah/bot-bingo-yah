@@ -50,9 +50,28 @@ foreach ($events as $event) {
       } else {
         replyTextMessage($bot, $event->getReplyToken(), 'すでに入室済みです。');
       }
+    //入室
+    } else if(substr($event->getText(), 4) == 'enter') {
+       //ユーザーが未入室のとき
+      if(getRoomIdOfUser($event->getUserId()) === PDO::PARAM_NULL) {
+        replyTextMessage($bot, $event->getReplyToken(), 'ルームIDを入力してください。');
+      } else {
+        replyTextMessage($bot, $event->getReplyToken(), '入室済みです。');
+      }
     }
     continue;
-  }  
+  }
+  // リッチコンテンツ以外の時（ルームIDが入力されたとき)
+  if(getRoomIdOfUser($event->getUserId()) === PDO::PARAM_NULL) {
+    //入室
+    $roomId = enterRoomAndGetRoomId($event->getUserId(), $event->getText());
+    //成功時
+    if($roomId !== PDO::PARAM_NULL) {
+      replyTextMessage($bot, $event->getReplyToken(), 'ルームID' . $roomId . 'に入室しました');
+    } else {
+      replyTextMessage($bot, $event->getReplyToken(), 'そのルームIDは存在しません。');
+    }
+  }
 }
 
 
@@ -80,6 +99,21 @@ function createRoomAndGetRoomId($userId) {
   $sth->execute(array($userId, PDO::PARAM_NULL, $roomId));
   return $roomId;
 }
+
+
+
+//入室しルームIDを返す
+function enterRoomAndGetRoomId($userId, $roomId) {
+  $dbh = dbConnection::getConnection();
+  $sql = 'insert into ' . TABLE_NAME_SHEETS . ' (userid, sheet, roomid) SELECT pgp_sym_encrypt(?, \'' . getenv('DB_ENCRYPT_PASS') .'\'), ?, ?
+    where exists(select roomid from ' . TABLE_NAME_SHEETS . ' where roomid = ?) returning roomid';
+  if (!($row = $sth->fetch())) {
+    return PDO::PARAM_NULL;
+  } else {
+    return $row['roomid'];
+  }
+}
+
 
 
 
