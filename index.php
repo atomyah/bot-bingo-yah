@@ -214,7 +214,7 @@ function updateUserSheet($userId, $sheet) {
       $imagemapMessageBuilder = new \LINE\LINEBot\MessageBuilder\
               ImagemapMessageBuilder('https://' . $_SERVER['HTTP_HOST'] . '/sheet/' . 
               urlencode($row['sheet']) . '/' . 
-              urlencode(json_encode([0])) . '/' . uniqid() . 'シート',
+              urlencode(json_encode([0])) . '/' . uniqid(), 'シート',
               new LINE\LINEBot\MessageBuilder\Imagemap\BaseSizeBuilder(1040, 1040), $actionArray);
       $builder = new \LINE\LINEBot\MessageBuilder\MultiMessageBuilder();
       $builder->add(new \LINE\LINEBot\MessageBuilder\TextMessageBuilder($text));
