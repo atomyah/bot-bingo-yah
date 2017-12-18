@@ -17,16 +17,17 @@ $balls = json_decode(urlencode($_REQUEST['balls']));
 for($i = 0; $i < count($sheet); $i++) {
   $col = $sheet[$i];
   for($j = 0; $j < count($col); $j++) {
-    if($col[$j] != 0) {
+      if($col[$j] != 0) {
+	  // 数字の画像を取得
       $numImage = imagecreatefrompng('imgs/' . str_pad($col[$j], 2, 0, STR_PAD_LEFT) . '.png');
       imagecopy($destinationImage, $numImage, 15 + (int)($i * 134), 116 + (int)($j * 114), 0, 0, 134, 114);
-      imagedestroy($numImage);
+        imagedestroy($numImage);
     }
-    
-    if(in_array($col[$j], $balls)) {
+      // 数字とボールの配列を比較し穴を合成
+      if(in_array($col[$j], $balls)) {
       $holeImage = imagecreatefrompng('imgs/hole.png');
       imagecopy($destinationImage, $holeImage, 15 + (int)($i * 134), 116 + (int)($j * 114), 0, 0, 134, 114);
-      imagedestroy($holeImage);
+        imagedestroy($holeImage);
     }
   }
 }
