@@ -91,7 +91,7 @@ foreach ($events as $event) {
       } else {
         // ユーザーがそのルームでビンゴを開始したユーザーでない場合
         if(getHostOfRoom(getRoomIdOfUser($event->getUserId())) != $event->getUserId()) {
-          replyTextMessage($bot, $event->getReplyToken(), '進行できるのはホストだけです。'. getHostOfRoom(getRoomIdOfUser($event->getUserId())));
+          replyTextMessage($bot, $event->getReplyToken(), '進行できるのはホストだけです。');
         } else {
           // ボールをひく
           proceedBingo($bot, $event->getUserId());
@@ -254,7 +254,7 @@ function getHostOfRoom($roomId) {
   $sql = 'select pgp_sym_decrypt(userid, \'' . getenv('DB_ENCRYPT_PASS') . '\') as userid from ' . TABLE_NAME_ROOMS . ' where roomid = ?';
   $sth = $dbh->prepare($sql);
   $sth->execute(array($roomId));
-  if (!($row = $sth->fetchAll())) {
+  if (!($row = $sth->fetch())) {
     return PDO::PARAM_NULL;
   } else {
     return $row['userid'];
