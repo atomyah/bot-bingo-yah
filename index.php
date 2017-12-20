@@ -3,6 +3,7 @@ require_once __DIR__ .'/vendor/autoload.php';
 require __DIR__ . '/functions.php';
 
 define('TABLE_NAME_SHEETS', 'sheets');
+define('TABLE_NAME_ROOMS', 'rooms');
 
 $httpClient = new \LINE\LINEBot\HTTPClient\CurlHTTPClient(getenv('CHANNEL_ACCESS_TOKEN'));
 
@@ -81,6 +82,22 @@ foreach ($events as $event) {
        // シートを準備
        prepareSheets($bot, $event->getUserId());
       }
+      // ビンゴのボールを１個ひく
+    } else if (substr($event->getText(), 4) == 'proceed') {
+      if(getRoomIdOfUser($event->getUserId()) === PDO::PARAM_NULL) {
+        replyTextMessage($bot, $event->getReplyToken(), 'ルームに入っていません');
+      } else if(getSheetOfUser($event->getUserId()) === PDO::PARAM_NULL) {
+        replyTextMessage($bot, $event->getReplyToken(), 'シートが配布されていません。まずビンゴ開始を押してください。');
+      } else {
+        // ユーザーがそのルームでビンゴを開始したユーザーでない場合
+        if(getHostOfRoom(getRoomIdOfUser($event->getUserId())) != $event->getUserId()) {
+          replyTextMessage($bot, $event->getReplyToken(), '進行できるのはホストだけです。');
+        } else {
+          // ボールをひく
+          proceedBingo($bot, $event->getUserId());
+        }
+        
+      }
     }
     continue;
   }
@@ -121,6 +138,13 @@ function createRoomAndGetRoomId($userId) {
   $sql = 'insert into ' . TABLE_NAME_SHEETS . ' (userid, sheet, roomid) values (pgp_sym_encrypt(?, \'' . getenv('DB_ENCRYPT_PASS') . '\'), ?, ?) ';
   $sth = $dbh->prepare($sql);
   $sth->execute(array($userId, PDO::PARAM_NULL, $roomId));
+  
+  // roomsテーブルの初期化
+  $sqlInsertRoom = 'insert into ' . TABLE_NAME_ROOMS . ' (roomid, balls userid) values (?, ?, pgp_sym_encrypt(?, \'' . getenv('DB_ENCRYPT_PASS') . '\'))';
+  $sthInsertRoom = $dbh->prepare($sqlInsertRoom);
+  //０は中心。最初からあいてる
+  $sthInsertRoom->execute(array($roomId, json_encode([0]), $userId));
+  
   return $roomId;
 }
 
@@ -199,7 +223,7 @@ function updateUserSheet($userId, $sheet) {
 
 
   //すべてのユーザーにシートのImagemapを送信
-  function pushSheetToUser($bot, $userId, $text) {
+function pushSheetToUser($bot, $userId, $text) {
     $dbh = dbConnection::getConnection();
     $sql = 'select pgp_sym_decrypt(userid, \'' . getenv('DB_ENCRYPT_PASS') . '\') as userid, sheet from ' . TABLE_NAME_SHEETS . ' where roomid = ?';
     $sth = $dbh->prepare($sql);
@@ -214,15 +238,78 @@ function updateUserSheet($userId, $sheet) {
       $imagemapMessageBuilder = new \LINE\LINEBot\MessageBuilder\
               ImagemapMessageBuilder('https://' . $_SERVER['HTTP_HOST'] . '/sheet/' . 
               urlencode($row['sheet']) . '/' . 
-              urlencode(json_encode([0])) . '/' . uniqid(), 'シート',
+              urlencode(json_encode(json_encode(getBallsOfRoom(getRoomIdOfUser($userId))))) . '/' . uniqid(), 'シート',
               new LINE\LINEBot\MessageBuilder\Imagemap\BaseSizeBuilder(1040, 1040), $actionsArray);
       $builder = new \LINE\LINEBot\MessageBuilder\MultiMessageBuilder();
       $builder->add(new \LINE\LINEBot\MessageBuilder\TextMessageBuilder($text));
       $builder->add($imagemapMessageBuilder);
       $bot->pushMessage($row['userid'], $builder);
     }
-  }
+}
 
+
+// ビンゴを開始したユーザーのユーザIDを取得
+function getHostOfRoom($roomId) {
+  $dbh = dbConnection::getConnection();
+  $sql = 'select pgp_sym_decrypt(userid, \'' . getenv('DB_ENCRYPT_PASS') . '\') as userid, from ' . TABLE_NAME_ROOMS . ' where roomid = ?';
+  $sth = $dbh->prepare($sql);
+  $sth->execute(array($roomId));
+  if (!($row = $sth->fetchAll())) {
+    return PDO::PARAM_NULL;
+  } else {
+    return $row['userid'];
+  }
+}
+
+
+// ボールをひく
+function proceedBingo($bot, $userId) {
+  $roomId = getRoomIdOfUser($userId);
+  
+  $dbh = dbConnection::getConnection();
+  $sql = 'select balls from ' . TABLE_NAME_ROOMS . ' where roomid = ?';
+  $sth = $dbh->prepare($sql);
+  $sth->execute(array($roomId));
+  if ($row = $sth->fetch()) {
+    // [3][45][10][74][9][22]...というような文字列を、$ballsArray配列にデコード
+    $ballArray = json_decode($row['balls']);
+    //when balls are pulled all...
+    if(count($ballArray) == 75) {
+      $bot->pushMessage($userId, new \LINE\LINEBot\MessageBuilder\TextMessageBuilder('もうボールはありません。')
+              );
+    return;
+    }
+    // 重複しないボールがでるまで引く
+    $newBall = 0;
+    do {
+      $newBall = rand(1, 75);
+    } while(in_array($newBall, $ballArray));
+    array_push($ballArray, $newBall);
+    
+    // ルームのボール情報テーブルを更新
+    $sqlUpdateBall = 'update ' . TABLE_NAME_ROOMS . ' set balls = ? where roomid = ?';
+    $sthUpdateBall = $dbh->prepare($sqlUpdateBall);
+    $sthUpdateBall->execute(array(json_encode($ballArray), $roomId));
+    
+    // すべてのユーザーに送信
+    pushSheetToUser($bot, $userId, $newBall);
+  }
+}
+
+
+
+// ルームのボール情報を獲得
+function getBallsOfRoom($roomId) {
+  $dbh = dbConnection::getConnection();
+  $sql = 'select balls from ' . TABLE_NAME_ROOMS . ' where roomid = ?';
+  $sth = $dbh->prepare($sql);
+  $sth->execute(array($roomId));
+  if (!($row = $sth->fetch())) {
+    return PDO::PARAM_NULL;
+  } else {
+    return json_decode($row['balls']);
+  }
+}
 
 
 
