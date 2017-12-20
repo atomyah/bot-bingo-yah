@@ -251,7 +251,7 @@ function pushSheetToUser($bot, $userId, $text) {
 // ビンゴを開始したユーザーのユーザIDを取得
 function getHostOfRoom($roomId) {
   $dbh = dbConnection::getConnection();
-  $sql = 'select pgp_sym_decrypt(userid, \'' . getenv('DB_ENCRYPT_PASS') . '\') as userid, from ' . TABLE_NAME_ROOMS . ' where roomid = ?';
+  $sql = 'select pgp_sym_decrypt(userid, \'' . getenv('DB_ENCRYPT_PASS') . '\') as userid from ' . TABLE_NAME_ROOMS . ' where roomid = ?';
   $sth = $dbh->prepare($sql);
   $sth->execute(array($roomId));
   if (!($row = $sth->fetchAll())) {
