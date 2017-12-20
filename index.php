@@ -91,7 +91,7 @@ foreach ($events as $event) {
       } else {
         // ユーザーがそのルームでビンゴを開始したユーザーでない場合
         if(getHostOfRoom(getRoomIdOfUser($event->getUserId())) != $event->getUserId()) {
-          replyTextMessage($bot, $event->getReplyToken(), '進行できるのはホストだけです。');
+          replyTextMessage($bot, $event->getReplyToken(), '進行できるのはホストだけです。'. getHostOfRoom(getRoomIdOfUser($event->getUserId())));
         } else {
           // ボールをひく
           proceedBingo($bot, $event->getUserId());
