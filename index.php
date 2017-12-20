@@ -235,11 +235,10 @@ function pushSheetToUser($bot, $userId, $text) {
     
     //ユーザーひとりづつ処理
     foreach ($sth->fetchAll() as $row) {
-      $imagemapMessageBuilder = new \LINE\LINEBot\MessageBuilder\
-              ImagemapMessageBuilder('https://' . $_SERVER['HTTP_HOST'] . '/sheet/' . 
-              urlencode($row['sheet']) . '/' . 
-              urlencode(json_encode(json_encode(getBallsOfRoom(getRoomIdOfUser($userId))))) . '/' . uniqid(), 'シート',
-              new LINE\LINEBot\MessageBuilder\Imagemap\BaseSizeBuilder(1040, 1040), $actionsArray);
+      $imagemapMessageBuilder = new \LINE\LINEBot\MessageBuilder\ImagemapMessageBuilder (
+          'https://' . $_SERVER['HTTP_HOST'] . '/sheet/' . urlencode($row['sheet']) . '/' . urlencode(json_encode(getBallsOfRoom(getRoomIdOfUser($userId)))) . '/' . uniqid(),
+          'シート',
+          new LINE\LINEBot\MessageBuilder\Imagemap\BaseSizeBuilder(1040, 1040), $actionsArray);
       $builder = new \LINE\LINEBot\MessageBuilder\MultiMessageBuilder();
       $builder->add(new \LINE\LINEBot\MessageBuilder\TextMessageBuilder($text));
       $builder->add($imagemapMessageBuilder);
