@@ -140,7 +140,7 @@ function createRoomAndGetRoomId($userId) {
   $sth->execute(array($userId, PDO::PARAM_NULL, $roomId));
   
   // roomsテーブルの初期化
-  $sqlInsertRoom = 'insert into ' . TABLE_NAME_ROOMS . ' (roomid, balls userid) values (?, ?, pgp_sym_encrypt(?, \'' . getenv('DB_ENCRYPT_PASS') . '\'))';
+  $sqlInsertRoom = 'insert into ' . TABLE_NAME_ROOMS . ' (roomid, balls, userid) values (?, ?, pgp_sym_encrypt(?, \'' . getenv('DB_ENCRYPT_PASS') . '\'))';
   $sthInsertRoom = $dbh->prepare($sqlInsertRoom);
   //０は中心。最初からあいてる
   $sthInsertRoom->execute(array($roomId, json_encode([0]), $userId));
