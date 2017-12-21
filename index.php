@@ -240,8 +240,14 @@ function pushSheetToUser($bot, $userId, $text) {
           'シート',
           new LINE\LINEBot\MessageBuilder\Imagemap\BaseSizeBuilder(1040, 1040), $actionsArray);
       $builder = new \LINE\LINEBot\MessageBuilder\MultiMessageBuilder();
-      $builder->add(new \LINE\LINEBot\MessageBuilder\TextMessageBuilder($text));
+      $builder->add(new \LINE\LINEBot\MessageBuilder\TextMessageBuilder($text)); // ここの$textには$newBallが入る。74とか
       $builder->add($imagemapMessageBuilder);
+      // ビンゴが成立している場合
+      if(getIsUserHasBingo($row['userid'])) {
+        //スタンプとテキストを追加
+        $builder = add(new \LINE\LINEBot\MessageBuilder\StickerMessageBuilder(1, 134));
+        $builder =add(new \LINE\LINEBot\MessageBuilder\TextMessageBuilder('ビンゴ！名乗りでて景品をもらってね！'));
+      }
       $bot->pushMessage($row['userid'], $builder);
     }
 }
@@ -309,6 +315,40 @@ function getBallsOfRoom($roomId) {
     return json_decode($row['balls']);
   }
 }
+
+
+
+// ユーザーのシートがビンゴ成立しているかを調べる
+function getIsUserHasBingo($userId) {
+  $roomId = getRoomIdOfUser($userId);
+  $balls = getBallsOfRoom($roomId);
+  $sheet = getSheetOfUser($userId);
+  
+  // すでに引かれているボールに一致すれば-1を代入
+  foreach ($sheet as &$col) {
+    foreach ($col as &$num) {
+      if(in_array($num, $balls)) {
+        $num = -1;
+      }
+    }
+  }
+  
+  // 縦か横の５マスの合計が-5ならビンゴ
+  for($i = 0; $i < 5; $i++) {
+    if(array_sum($sheet[$i]) == -5 || $sheet[0][$i] + $sheet[1][$i] + $sheet[2][$i] + $sheet[3][$i] + $sheet[4][$i] == -5) {
+      return TRUE;
+    } 
+  }
+
+  // 斜めの合計が-5ならビンゴ
+  if($sheet[0][0] + $sheet[1][1] + $sheet[2][2] + $sheet[3][3] + $sheet[4][4] == -5 || 
+          $sheet[0][4] + $sheet[1][3] + $sheet[2][2] + $sheet[3][1] + $sheet[4][0] == -5 ) {
+    return TRUE;
+  }
+  
+  return FALSE;
+}
+
 
 
 
