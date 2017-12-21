@@ -95,9 +95,23 @@ foreach ($events as $event) {
         } else {
           // ボールをひく
           proceedBingo($bot, $event->getUserId());
-        }
-        
+        }        
       }
+      // ビンゴ終了確認ダイアログ
+    } else if (substr($event->getText(), 4) == 'end_confirm') {
+      if(getRoomIdOfUser($event->getUserId()) === PDO::PARAM_NULL) {
+        replyTextMessage($bot, $event->getReplyToken(), 'ルームに入っておりません');
+      } else {
+        if(getHostOfRoom(getRoomIdOfUser($event->getUserId())) != $event->getUserId()) {
+          replyTextMessage($bot, $event->getReplyToken(), 'ゲーム終了できるのはゲームを開始したホストのみです。');
+        } else {
+          replyConfirmTemplate($bot, $event->getReplyToken(), '本当に終了しますか？データはすべて失われます', '本当に終了しますか？データはすべて失われます',
+                  new \LINE\LINEBot\TemplateActionBuilder\MessageTemplateActionBuilder('はい', 'cmd_end'),
+                  new \LINE\LINEBot\TemplateActionBuilder\PostbackTemplateActionBuilder('いいえ', 'cmd_cancel'));
+        }
+      }
+    } else if(substr($event->getText(), 4) == 'end') {
+      endBingo($bot, $event->getUserId());
     }
     continue;
   }
@@ -349,6 +363,30 @@ function getIsUserHasBingo($userId) {
   return FALSE;
 }
 
+
+// ビンゴ終了
+function endBingo($bot, $userId) {
+  $roomId = getRoomIdOfUser($userId);
+  
+  $dbh = dbConnection::getConnection();
+  $sql = 'select pgp_sym_decrypt(userid, \'' . getenv('DB_ENCRYPT_PASS') . '\') as userid, sheet from ' . TABLE_NAME_SHEETS . ' where roomid = ?';
+  $sth = $dbh->prepare($sql);
+  $sth->execute(array(getRoomIdOfUser($userId)));
+  // 各ユーザーにメッセージを送信
+  foreach ($sth->fetchAll() as $row) {
+    $bot->pushMesssage($row['userid'], new \LINE\LINEBot\MessageBuilder\TextMessageBuilder('ビンゴ終了。退出しました。'));
+  }
+  
+  // ユーザーを削除
+  $sqlDeleteUser = 'delete from ' . TABLE_NAME_SHEETS . ' where roomid = ?';
+  $sthDeleteUser = $dbh->prepare($sqlDeleteUser);
+  $sthDeleteUser->execute(array($roomId));
+  
+  // ルームを削除
+  $sqlDeleteRoom = 'delete from ' .TABLE_NAME_ROOMS .' where roomid = ?';
+  $sthDeleteRoom = $dbh->prepare($sqlDeleteRoom);
+  $sthDeleteRoom->execute(array($roomId));
+}
 
 
 
