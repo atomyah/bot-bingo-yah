@@ -374,7 +374,7 @@ function endBingo($bot, $userId) {
   $sth->execute(array(getRoomIdOfUser($userId)));
   // 各ユーザーにメッセージを送信
   foreach ($sth->fetchAll() as $row) {
-    $bot->pushMesssage($row['userid'], new \LINE\LINEBot\MessageBuilder\TextMessageBuilder('ビンゴ終了。退出しました。'));
+    $bot->pushMessage($row['userid'], new \LINE\LINEBot\MessageBuilder\TextMessageBuilder('ビンゴ終了。退出しました。'));
   }
   
   // ユーザーを削除
